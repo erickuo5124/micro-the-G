@@ -1,75 +1,92 @@
 #include "setting_hardaware/setting.h"
 #include <stdlib.h>
 #include "stdio.h"
-#include "math.h"
 #include "string.h"
-// using namespace std;
 
-#define _XTAL_FREQ 4000000 
+#include <xc.h>
+#include <pic18f4520.h>
 
-char str[20];
-int enable_log = 0;
-int picture[13] = {
-    0b00000000,
-    0b00011000,
-    0b00100100,
-    0b01000010,
-    0b10010001,
-    0b10100101,
-    0b10100001,
-    0b10100101,
-    0b10010001,
-    0b01000010,
-    0b00100100,
-    0b00011000,
-    0b00000000,  
-};
+#define _XTAL_FREQ 1000000
 
+#define START 0xBDB
 
-void main(void) 
+int seven_seg[] = {0xc0, 0xf9, 0xa4, 0xb0, 0x99, 0x92, 0x82, 0xf8, 0x80, 0x90};
+int hour;
+int minute;
+int second;
+
+int alarm[2] = {0};
+
+int digits[4] = {0};
+
+void __interrupt(high_priority) ISR()
 {
-    TRISD = 0;
-    LATD = 0xff;
-    SYSTEM_Initialize() ;
+    // TMR0H = 0xB, TMR0L = 0xDB;
+    TMR0H = 0xff, TMR0L = 0xfd;
 
-    int threshold = 40;
-
-    int prev = ADC_Read(0x5);
-
-    while(1) {
-        int curr = ADC_Read(0x5);
-        int g = curr - prev;
-        prev = curr;
-        
-        sprintf(str, "%d\r\n", g);
-        UART_Write_Text(str);
-
-        if (g > threshold) {
-            __delay_ms(50);
-            for (int i = 0; i < 13; i++) {
-                LATD = picture[i] & 0xff;
-                __delay_ms(5);
-            }
-        } else if (g < -threshold) {
-            __delay_ms(50);
-            for (int i = 0; i < 13; i++) {
-                LATD = picture[i] & 0xff;
-                __delay_ms(5);
-            }
+    second++;
+    // if (second > 59)
+    // { // 60 sec
+    second = 0;
+    minute++;
+    if (minute > 59)
+    {
+        minute = 0;
+        hour++;
+        if (hour > 23)
+        {
+            hour = 0;
         }
     }
-    return;
-    
+
+    if (alarm[0] == hour && alarm[1] == minute)
+        LATCbits.LC0 = 1;
+    else 
+        LATCbits.LC0 = 0;
+
+    // }
+    digits[0] = minute % 10;
+    digits[1] = minute / 10;
+    digits[2] = hour % 10;
+    digits[3] = hour / 10;
+    INTCONbits.TMR0IF = 0;
 }
 
-// old version: 
-// void interrupt high_priority Hi_ISR(void)
-void __interrupt(high_priority) Hi_ISR(void)
+void main(void)
 {
-    // if(PIR1bits.CCP1IF == 1) {
-    //     RC2 ^= 1;
-    //     PIR1bits.CCP1IF = 0;
-    //     TMR3 = 0;
-    // }
-    return ;
+    SYSTEM_Initialize();
+
+    INTCONbits.TMR0IE = 1;
+    INTCONbits.TMR0IF = 0;
+    T0CON = 0b10000001;
+
+    TRISA = 0b10000000;
+    TRISD = 0;
+    TRISC = 0;
+
+    hour = 22;
+    minute = 0;
+    second = 0;
+
+    // TMR0H = 0xB, TMR0L = 0xDB;
+
+    TMR0H = 0xff, TMR0L = 0xfd;
+    LATA = 0;
+    LATD = 0;
+
+    LATD = 0x1;
+
+    int idx = 0;
+    while (1)
+    {
+
+        LATA = seven_seg[digits[idx]];
+
+        __delay_ms(5);
+
+        LATD <<= 1;
+        if (LATD > 15)
+            LATD = 1;
+        idx = (idx + 1) % 4;
+    }
 }

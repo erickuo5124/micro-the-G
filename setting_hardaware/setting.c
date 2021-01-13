@@ -66,14 +66,14 @@ void SYSTEM_Initialize(void)
 //    TMR0_Initialize();
     INTERRUPT_Initialize();
     UART_Initialize();
-    // CCP1_Initialize();
+    CCP1_Initialize();
     ADC_Initialize();
 }
 
 void OSCILLATOR_Initialize(void)
 {
     IRCF2 = 1; // default setting 4M Hz
-    IRCF1 = 1;
+    IRCF1 = 0;
     IRCF0 = 0;
 
     // RCON = 0x0000;

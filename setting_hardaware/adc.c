@@ -2,7 +2,7 @@
 
 void ADC_Initialize(void) {
     TRISA = 0xff;		// Set as input port
-    ADCON1 = 0x00;  	// Ref vtg is VDD & Configure pin as analog pin 
+    ADCON1 = 0x0e;  	// Ref vtg is VDD & Configure pin as analog pin 
     // ADCON2 = 0x92;  	
     ADFM = 1 ;          // Right Justifie
     ADCON2bits.ADCS = 7; // 
@@ -14,7 +14,7 @@ int ADC_Read(int channel)
 {
     int digital;
     
-    ADCON0bits.CHS =  channel; // Select Channe7
+    ADCON0bits.CHS =  0x07; // Select Channe7
     ADCON0bits.GO = 1;
     ADCON0bits.ADON = 1;
     
